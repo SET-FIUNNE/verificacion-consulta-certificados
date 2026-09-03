@@ -1,31 +1,667 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verificación-Consulta de Certificados</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-    }
-    iframe {
-      width: 100%;
-      height: 100vh;
-      border: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificación y Consultas de Certificados</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #366369;
+            --primary-hover: #2d5257;
+            --header-bg: #053742;
+            --success-color: #059669;
+            --error-color: #dc2626;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --base-font-size: 16px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+        html, body {
+            font-size: var(--base-font-size);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .main-header {
+            background-color: var(--header-bg);
+            width: 100%;
+            padding: 0.85rem 1.5rem;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-container { 
+            width: 100%; 
+            max-width: 95%; 
+            margin: 0 auto; 
+            display: flex; 
+            align-items: center; 
+        }
+
+        .header-logo { height: 72px; width: auto; object-fit: contain; }
+        .header-logo-title {
+            margin-left: auto;
+            text-align: right;
+            margin-top: 0;
+            margin-bottom: 0;
+            color: #FFFFFF;
+        }
+
+        .container { 
+            width: 98% !important;
+            max-width: 98% !important;
+            margin: 1rem auto;
+            padding: 0;
+            flex: 1;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem 1rem;
+            text-align: center;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        h1 { font-size: clamp(1.25rem, 3vw, 1.5rem); font-weight: 700; color: var(--text-main); margin-bottom: 1rem; }
+
+        .search-wrapper { 
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin: 0 auto 1.5rem auto;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .search-box { display: flex; gap: 0.75rem; width: 100%; }
+
+        input[type="text"] {
+            flex: 1;
+            min-width: 0;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus { border-color: var(--primary-color); }
+
+        button.btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        button.btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-alt { background-color: #053742 !important; }
+
+        .divider { display: flex; align-items: center; text-align: center; color: var(--text-muted); font-size: 0.8rem; font-weight: 600; margin: 0.25rem 0; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #e2e8f0; }
+        .divider span { padding: 0 0.5rem; }
+
+        .loader {
+            display: none;
+            margin: 1.25rem auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 2.25rem;
+            height: 2.25rem;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #resultado { margin-top: 1.5rem; text-align: left; display: none; }
+
+        .result-card { border-radius: 0.75rem; border: 1px solid #e2e8f0; overflow: hidden; background: #fff; margin-bottom: 1rem; }
+        .result-card.valido { border-top: 4px solid var(--success-color); }
+        .result-card.invalido { border-top: 4px solid var(--error-color); }
+        .result-header-banner { padding: 1.25rem; background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+        .status-title { display: flex; align-items: center; gap: 0.625rem; font-size: 1.05rem; font-weight: 700; color: var(--success-color); }
+        .status-badge { font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 9999px; background-color: #d1fae5; color: #047857; text-transform: uppercase; }
+        .result-body { padding: 1.25rem; }
+        .cert-target-name { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
+        .cert-target-course { font-size: 0.95rem; color: var(--primary-color); font-weight: 600; margin-bottom: 1rem; }
+        .details-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+        .detail-item { display: flex; flex-direction: column; }
+        .detail-label { font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted); }
+        .detail-value { font-size: 0.9rem; font-weight: 500; }
+        .result-footer { padding: 0.85rem 1.25rem; background-color: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted); }
+
+        .btn-action {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.4rem 0.85rem;
+            border-radius: 0.375rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .hidden { display: none !important; }
+
+        .report-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f1f5f9;
+            padding: 0.75rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-bottom: none;
+            border-radius: 0.5rem 0.5rem 0 0;
+            gap: 0.5rem;
+        }
+
+        .table-container-contable {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid #cbd5e1;
+            border-radius: 0 0 0.5rem 0.5rem;
+        }
+
+        .cert-table-contable {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+            background-color: #ffffff;
+            table-layout: auto;
+        }
+
+        .cert-table-contable th {
+            background-color: #0f172a;
+            color: #ffffff;
+            padding: 0.65rem 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            border-right: 1px solid #334155;
+        }
+
+        .cert-table-contable td {
+            padding: 0.6rem 0.85rem;
+            border-bottom: 1px solid #e2e8f0;
+            border-right: 1px solid #f1f5f9;
+            color: #1e293b;
+            vertical-align: middle;
+        }
+
+        .cert-table-contable tbody tr:nth-child(even) { background-color: #f8fafc; }
+        .cert-table-contable tbody tr:hover { background-color: #e2e8f0; }
+
+        .btn-table-pdf {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.4rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            white-space: nowrap;
+            transition: background-color 0.2s;
+        }
+
+        .btn-table-pdf:hover { background-color: var(--primary-hover); }
+
+        .btn-secundario {
+            background-color: #475569;
+            color: white;
+            border: none;
+            padding: 0.4rem 0.85rem;
+            border-radius: 0.375rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            white-space: nowrap;
+        }
+
+        .btn-secundario:hover { background-color: #334155; }
+
+        .mobile-cards-container {
+            display: none;
+            flex-direction: column;
+            gap: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        .mobile-cert-card {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-left: 4px solid var(--primary-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: left;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+
+        .mobile-cert-title { font-weight: 700; color: #0f172a; font-size: 0.95rem; margin-bottom: 0.25rem; }
+        .mobile-cert-type { font-size: 0.75rem; color: #64748b; margin-bottom: 0.75rem; }
+        .mobile-cert-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; font-size: 0.8rem; margin-bottom: 0.75rem; }
+        .mobile-cert-label { color: #64748b; font-size: 0.7rem; text-transform: uppercase; font-weight: 600; }
+        .mobile-cert-val { font-weight: 600; color: #0f172a; }
+
+        footer { text-align: center; padding: 1.25rem; font-size: 0.8125rem; color: var(--text-muted); }
+
+        @media (max-width: 768px) {
+            .header-container { flex-direction: column; text-align: center; gap: 0.5rem; }
+            .header-logo { height: 48px; }
+            .header-logo-title { margin-left: 0; text-align: center; font-size: 1.1rem; }
+            
+            .search-box { flex-direction: column; }
+            button.btn-primary { width: 100%; }
+
+            .details-grid { grid-template-columns: 1fr; }
+            .result-footer { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+
+            .report-toolbar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+            .btn-secundario { width: 100%; justify-content: center; }
+
+            .table-container-contable { display: none; }
+            .mobile-cards-container { display: flex; }
+        }
+    </style>
 </head>
 <body>
-  <iframe 
-    src="https://script.google.com/macros/s/AKfycbytvPPxzIHUhqPtpXTVDdCiWR8H7eZ2MUIJeI31NNsiIrysWpjxpp8sSrtR9TCvulwx/exec" 
-    allow="geolocation; microphone; camera">
-  </iframe>
+
+    <header class="main-header">
+        <div class="header-container">
+            <img src="https://iili.io/CmYwWn1.md.png" alt="Facultad de Ingeniería - UNNE" class="header-logo">
+            <h1 class="header-logo-title">Verificación y Consultas de Certificados</h1>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            
+            <div class="search-wrapper">
+                <div class="search-box">
+                    <input type="text" id="codigoInput" placeholder="INGRESE REGISTRO N°" autocomplete="off">
+                    <button class="btn-primary" onclick="consultarCodigo()">Verificar</button>
+                </div>
+
+                <div class="divider"><span>O CONSULTAR POR</span></div>
+
+                <div class="search-box">
+                    <input type="text" id="dniInput" placeholder="INGRESE N° DE DOCUMENTO (DNI)" autocomplete="off">
+                    <button class="btn-primary btn-alt" onclick="consultarDNI()">Buscar por DNI</button>
+                </div>
+            </div>
+
+            <div class="loader" id="loader"></div>
+            <div id="resultado"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2026. Secretaría de Extensión y Transferencia. Facultad de Ingeniería - UNNE.</p>
+    </footer>
+
+    <script>
+        // ⚠️ PEGA AQUÍ LA URL COMPLETA DE TU DESPLIEGUE WEB APP
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbytvPPxzIHUhqPtpXTVDdCiWR8H7eZ2MUIJeI31NNsiIrysWpjxpp8sSrtR9TCvulwx/exec";
+
+        document.getElementById("codigoInput").addEventListener("keypress", e => { if (e.key === "Enter") consultarCodigo(); });
+        document.getElementById("dniInput").addEventListener("keypress", e => { if (e.key === "Enter") consultarDNI(); });
+
+        function obtenerFechaActual() {
+            return new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        // Petición HTTP FETCH directa para prevenir error 404 en móviles por múltiples cuentas
+        function consultarCodigo() {
+            const codigo = document.getElementById("codigoInput").value.trim();
+            if (!codigo) { alert("Ingrese un código de registro."); return; }
+            iniciarCarga();
+
+            fetch(`${WEB_APP_URL}?codigo=${encodeURIComponent(codigo)}`)
+                .then(res => res.json())
+                .then(data => mostrarResultadoCodigo(data))
+                .catch(err => mostrarError(err));
+        }
+
+        // Petición HTTP FETCH directa para prevenir error 404 en móviles por múltiples cuentas
+        function consultarDNI() {
+            const dni = document.getElementById("dniInput").value.trim();
+            if (!dni) { alert("Ingrese un número de DNI."); return; }
+            iniciarCarga();
+
+            fetch(`${WEB_APP_URL}?dni=${encodeURIComponent(dni)}`)
+                .then(res => res.json())
+                .then(data => mostrarResultadosDNI(data))
+                .catch(err => mostrarError(err));
+        }
+
+        function iniciarCarga() {
+            document.getElementById("loader").style.display = "block";
+            const resDiv = document.getElementById("resultado");
+            resDiv.style.display = "none";
+            resDiv.innerHTML = "";
+        }
+
+        function descargarPDF(codigo, btnElement) {
+            const textoOrig = btnElement.innerHTML;
+            btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando...';
+            btnElement.disabled = true;
+
+            // Para descargas con generación en servidor aún se soporta google.script.run si se accede de forma nativa
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(function(base64Data) {
+                        btnElement.innerHTML = textoOrig;
+                        btnElement.disabled = false;
+                        const link = document.createElement('a');
+                        link.href = 'data:application/pdf;base64,' + base64Data;
+                        link.download = `Validacion_${codigo}.pdf`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    })
+                    .withFailureHandler(function(err) {
+                        btnElement.innerHTML = textoOrig;
+                        btnElement.disabled = false;
+                        alert("Error al generar PDF: " + err.message);
+                    })
+                    .generarPDFEnServidor(codigo);
+            } else {
+                btnElement.innerHTML = textoOrig;
+                btnElement.disabled = false;
+                alert("Función disponible únicamente en el entorno web principal.");
+            }
+        }
+
+        function mostrarResultadoCodigo(res) {
+            finalizarCarga();
+            const div = document.getElementById("resultado");
+            const buscadorWrapper = document.querySelector(".search-wrapper");
+            
+            if (res && res.encontrado) {
+                if (buscadorWrapper) buscadorWrapper.classList.add("hidden");
+                div.innerHTML = crearTarjetaHTML(res);
+            } else {
+                div.innerHTML = crearMensajeError(res ? res.mensaje : "Ocurrió un error en la búsqueda.");
+            }
+        }
+
+        function convertirFechaATimestamp(fechaStr) {
+            if (!fechaStr) return 0;
+            const str = String(fechaStr).toLowerCase().trim();
+
+            const matchNum = str.match(/^(\d{1,4})[\/\-](\d{1,2})[\/\-](\d{1,4})$/);
+            if (matchNum) {
+                let p1 = parseInt(matchNum[1], 10);
+                let p2 = parseInt(matchNum[2], 10);
+                let p3 = parseInt(matchNum[3], 10);
+
+                if (p1 > 1000) {
+                    return new Date(p1, p2 - 1, p3).getTime();
+                } else if (p3 > 1000) {
+                    return new Date(p3, p2 - 1, p1).getTime();
+                }
+            }
+
+            const meses = {
+                'enero': 0, 'ene': 0, 'january': 0, 'jan': 0,
+                'febrero': 1, 'feb': 1, 'february': 1,
+                'marzo': 2, 'mar': 2, 'march': 2,
+                'abril': 3, 'abr': 3, 'april': 3, 'apr': 3,
+                'mayo': 4, 'may': 4,
+                'junio': 5, 'jun': 5, 'june': 5,
+                'julio': 6, 'jul': 6, 'july': 6,
+                'agosto': 7, 'ago': 7, 'august': 7, 'aug': 7,
+                'septiembre': 8, 'sep': 8, 'setiembre': 8, 'september': 8,
+                'octubre': 9, 'oct': 9, 'october': 9,
+                'noviembre': 10, 'nov': 10, 'november': 10,
+                'diciembre': 11, 'dic': 11, 'december': 11, 'dec': 11
+            };
+
+            let dia = 1, mes = 0, anio = 1970;
+            
+            const anioMatch = str.match(/\b(19\d\d|20\d\d)\b/);
+            if (anioMatch) anio = parseInt(anioMatch[0], 10);
+
+            const diaMatch = str.match(/\b([1-9]|[12]\d|3[01])\b/);
+            if (diaMatch) dia = parseInt(diaMatch[0], 10);
+
+            let mesEncontrado = false;
+            for (const [nombre, idx] of Object.entries(meses)) {
+                if (str.includes(nombre)) {
+                    mes = idx;
+                    mesEncontrado = true;
+                    break;
+                }
+            }
+
+            if (mesEncontrado) {
+                return new Date(anio, mes, dia).getTime();
+            }
+
+            const parsed = Date.parse(str);
+            return isNaN(parsed) ? 0 : parsed;
+        }
+
+        function mostrarResultadosDNI(res) {
+            finalizarCarga();
+            const div = document.getElementById("resultado");
+            const buscadorWrapper = document.querySelector(".search-wrapper");
+            
+            if (!res) {
+                div.innerHTML = crearMensajeError("No se recibió respuesta del servidor. Intente nuevamente.");
+                return;
+            }
+
+            if (res.encontrado && Array.isArray(res.certificados)) {
+                if (buscadorWrapper) buscadorWrapper.classList.add("hidden");
+
+                res.certificados.sort((a, b) => {
+                    const timeA = convertirFechaATimestamp(a.fecha);
+                    const timeB = convertirFechaATimestamp(b.fecha);
+                    return timeB - timeA;
+                });
+
+                let html = `
+                    <div class="report-toolbar">
+                        <div>
+                            <strong style="color: #0f172a; font-size: 0.95rem;">REGISTRO DE CERTIFICACIONES</strong><br>
+                            <span style="font-size:0.8rem; color:#64748b;">NOMBRE: <b>${res.persona}</b> — DNI: <b>${res.dni}</b></span>
+                        </div>
+                        <button class="btn-secundario" onclick="nuevaBusqueda()">
+                            <i class="fa-solid fa-magnifying-glass"></i> Nueva Búsqueda
+                        </button>
+                    </div>
+
+                    <div class="table-container-contable">
+                        <table class="cert-table-contable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 3%; text-align: center;">#</th>
+                                    <th style="width: 12%;">Registro N°</th>
+                                    <th style="width: 45%;">Denominación del Curso / Capacitación</th>
+                                    <th style="width: 18%;">Fecha Emisión</th>
+                                    <th style="width: 10%;">Nota</th>
+                                    <th style="width: 12%; text-align: center;">Documento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                let htmlMobile = `<div class="mobile-cards-container">`;
+
+                res.certificados.forEach((c, index) => {
+                    const tieneUrl = c.urlResolucion && c.urlResolucion.trim().startsWith("http");
+                    const accionBoton = tieneUrl 
+                        ? `window.open('${c.urlResolucion}', '_blank')` 
+                        : `alert('No hay un documento adjunto disponible para este certificado.')`;
+
+                    html += `
+                        <tr>
+                            <td style="text-align: center; font-weight: 600; color: #64748b;">${index + 1}</td>
+                            <td><code style="font-weight: 700; color: #0f172a;">${c.codigo}</code></td>
+                            <td>
+                                <strong style="color: #0f172a;">${c.curso}</strong><br>
+                                <small style="color: #64748b;">${c.tipoCertificacion}</small>
+                            </td>
+                            <td>${c.fecha}</td>
+                            <td><b style="color: #059669;">${c.nota}</b></td>
+                            <td style="text-align: center;">
+                                <button class="btn-table-pdf" onclick="${accionBoton}" ${!tieneUrl ? 'style="opacity: 0.6; cursor: not-allowed;"' : ''}>
+                                    <i class="fa-solid fa-file-pdf"></i> Ver Documento
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+
+                    htmlMobile += `
+                        <div class="mobile-cert-card">
+                            <div class="mobile-cert-title">${c.curso}</div>
+                            <div class="mobile-cert-type">${c.tipoCertificacion}</div>
+                            <div class="mobile-cert-grid">
+                                <div>
+                                    <span class="mobile-cert-label">Registro N°</span><br>
+                                    <span class="mobile-cert-val"><code>${c.codigo}</code></span>
+                                </div>
+                                <div>
+                                    <span class="mobile-cert-label">Fecha</span><br>
+                                    <span class="mobile-cert-val">${c.fecha}</span>
+                                </div>
+                                <div>
+                                    <span class="mobile-cert-label">Nota</span><br>
+                                    <span class="mobile-cert-val" style="color: #059669;">${c.nota}</span>
+                                </div>
+                            </div>
+                            <button class="btn-table-pdf" style="width: 100%; justify-content: center;" onclick="${accionBoton}" ${!tieneUrl ? 'style="opacity: 0.6; cursor: not-allowed;"' : ''}>
+                                <i class="fa-solid fa-file-pdf"></i> Ver Documento Adjunto
+                            </button>
+                        </div>
+                    `;
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                htmlMobile += `</div>`;
+
+                div.innerHTML = html + htmlMobile;
+            } else {
+                div.innerHTML = crearMensajeError(res ? res.mensaje : "Ocurrió un error en la búsqueda.");
+            }
+        }
+
+        function crearTarjetaHTML(res) {
+            const fechaHoy = obtenerFechaActual();
+            const textoResolucion = res.urlResolucion 
+                ? `<a href="${res.urlResolucion}" target="_blank" class="btn-resolucion">${res.resolucion} <i class="fa-solid fa-arrow-up-right-from-square fa-xs"></i></a>`
+                : res.resolucion;
+
+            return `
+                <div class="report-toolbar">
+                    <div>
+                        <strong style="color: #0f172a; font-size: 1rem;">RESULTADO DE VALIDACIÓN DE CONSTANCIA</strong>
+                    </div>
+                    <button class="btn-secundario" onclick="nuevaBusqueda()">
+                        <i class="fa-solid fa-magnifying-glass"></i> Nueva Búsqueda
+                    </button>
+                </div>
+                <div class="result-card valido" style="border-radius: 0 0 0.5rem 0.5rem;">
+                    <div class="result-header-banner">
+                        <div class="status-title"><i class="fa-solid fa-circle-check"></i> ${res.tipoCertificacion}</div>
+                        <span class="status-badge">${res.estado}</span>
+                    </div>
+                    <div class="result-body">
+                        <div class="cert-target-name">${res.nombre}</div>
+                        <div class="cert-target-course">${res.curso}</div>
+                        <div class="details-grid">
+                            <div class="detail-item"><span class="detail-label">Registro N°</span><span class="detail-value">${res.codigo}</span></div>
+                            <div class="detail-item"><span class="detail-label">N° Documento</span><span class="detail-value">${res.documento}</span></div>
+                            <div class="detail-item"><span class="detail-label">N° Resolución</span><span class="detail-value">${textoResolucion}</span></div>
+                            <div class="detail-item"><span class="detail-label">Fecha Emisión</span><span class="detail-value">${res.fecha}</span></div>
+                            <div class="detail-item"><span class="detail-label">Calificación</span><span class="detail-value">${res.nota}</span></div>
+                        </div>
+                    </div>
+                    <div class="result-footer">
+                        <span>Consulta realizada el ${fechaHoy}</span>
+                        <button class="btn-action" onclick="descargarPDF('${res.codigo}', this)">
+                            <i class="fa-solid fa-file-pdf"></i> Descargar PDF
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function nuevaBusqueda() {
+            const buscadorWrapper = document.querySelector(".search-wrapper");
+            const div = document.getElementById("resultado");
+            
+            if (buscadorWrapper) buscadorWrapper.classList.remove("hidden");
+            
+            div.style.display = "none";
+            div.innerHTML = "";
+            document.getElementById("dniInput").value = "";
+            document.getElementById("codigoInput").value = "";
+        }
+
+        function crearMensajeError(msj) {
+            return `
+                <div class="result-card invalido">
+                    <div class="result-header-banner">
+                        <div class="status-title" style="color:var(--error-color);"><i class="fa-solid fa-circle-xmark"></i> Constancia No Válida</div>
+                    </div>
+                    <div class="result-body"><p class="detail-value">${msj}</p></div>
+                </div>
+            `;
+        }
+
+        function finalizarCarga() {
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("resultado").style.display = "block";
+        }
+
+        function mostrarError(err) {
+            finalizarCarga();
+            document.getElementById("resultado").innerHTML = crearMensajeError("No se pudo completar la consulta. Inténtelo más tarde.");
+        }
+    </script>
 </body>
 </html>
