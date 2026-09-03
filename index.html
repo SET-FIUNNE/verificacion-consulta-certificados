@@ -347,27 +347,32 @@
             return new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
         }
 
-        // Método universal JSONP para evadir bloqueos CORS/multi-cuenta en celulares
-        function hacerPeticionJSONP(urlParams, callbackName) {
-            const viejoScript = document.getElementById("jsonp-script");
-            if (viejoScript) viejoScript.remove();
+// Función JSONP con bypass de sesión de Google para navegadores móviles
+function hacerPeticionJSONP(urlParams, callbackName) {
+    const viejoScript = document.getElementById("jsonp-script");
+    if (viejoScript) viejoScript.remove();
 
-            const timestamp = new Date().getTime();
-            const script = document.createElement("script");
-            script.id = "jsonp-script";
-            script.src = `${WEB_APP_URL}?${urlParams}&prefix=${callbackName}&anonymous=true&_nocache=${timestamp}`;
-            
-            script.onerror = function() {
-                finalizarCarga();
-                if (window.btnPDFActivo) {
-                    window.btnPDFActivo.innerHTML = window.textoBtnOrig;
-                    window.btnPDFActivo.disabled = false;
-                }
-                alert("No se pudo conectar con el servidor desde este dispositivo. Intente nuevamente.");
-            };
+    const timestamp = new Date().getTime();
+    
+    // Al añadir client=whitelisted y omitir credenciales, Google trata la petición como pública pura
+    const script = document.createElement("script");
+    script.id = "jsonp-script";
+    script.src = `${WEB_APP_URL}?${urlParams}&prefix=${callbackName}&client=whitelisted&_nocache=${timestamp}`;
+    
+    // Omitir envío de cookies de la sesión de Google para evitar redirección de cuenta /u/0/
+    script.crossOrigin = "anonymous";
 
-            document.body.appendChild(script);
+    script.onerror = function() {
+        finalizarCarga();
+        if (window.btnPDFActivo) {
+            window.btnPDFActivo.innerHTML = window.textoBtnOrig;
+            window.btnPDFActivo.disabled = false;
         }
+        alert("No se pudo conectar con el servidor desde este dispositivo. Intente nuevamente.");
+    };
+
+    document.body.appendChild(script);
+}
 
         function consultarCodigo() {
             const codigo = document.getElementById("codigoInput").value.trim();
