@@ -378,16 +378,19 @@
             resDiv.innerHTML = "";
         }
         
-       / Función JSONP optimizada para navegadores móviles (Safari / Chrome Android)
+    // Función JSONP optimizada para navegadores móviles con bypass de cuentas de Google
 function hacerPeticionJSONP(urlParams, callbackName) {
     const viejoScript = document.getElementById("jsonp-script");
     if (viejoScript) viejoScript.remove();
 
-    // Timestamp evita que el celular guarde en caché respuestas viejas o erróneas
+    // Timestamp para evitar caché en móviles
     const cacheBuster = "&_nocache=" + new Date().getTime();
+    
     const script = document.createElement("script");
     script.id = "jsonp-script";
-    script.src = `${WEB_APP_URL}?${urlParams}&prefix=${callbackName}${cacheBuster}`;
+    
+    // Se añade &anonymous=true para que Google no intente validar las cuentas de Gmail abiertas en el teléfono
+    script.src = `${WEB_APP_URL}?${urlParams}&prefix=${callbackName}&anonymous=true${cacheBuster}`;
     
     // Manejo de error si falla la carga en móviles
     script.onerror = function() {
