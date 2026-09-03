@@ -382,33 +382,36 @@
             const textoOrig = btnElement.innerHTML;
             btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando...';
             btnElement.disabled = true;
-
-            // Para descargas con generación en servidor aún se soporta google.script.run si se accede de forma nativa
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(function(base64Data) {
-                        btnElement.innerHTML = textoOrig;
-                        btnElement.disabled = false;
-                        const link = document.createElement('a');
-                        link.href = 'data:application/pdf;base64,' + base64Data;
-                        link.download = `Validacion_${codigo}.pdf`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    })
-                    .withFailureHandler(function(err) {
-                        btnElement.innerHTML = textoOrig;
-                        btnElement.disabled = false;
-                        alert("Error al generar PDF: " + err.message);
-                    })
-                    .generarPDFEnServidor(codigo);
-            } else {
+        
+            // Guardar referencia temporal del botón activo
+            window.btnPDFActivo = btnElement;
+            window.textoBtnOrig = textoOrig;
+            window.codigoPDFActivo = codigo;
+        
+            // Petición JSONP para solicitar el PDF generado
+            hacerPeticionJSONP(`pdfCode=${encodeURIComponent(codigo)}`, "procesarDescargaPDF");
+        }
+        function procesarDescargaPDF(res) {
+            const btnElement = window.btnPDFActivo;
+            const textoOrig = window.textoBtnOrig;
+            const codigo = window.codigoPDFActivo;
+        
+            if (btnElement) {
                 btnElement.innerHTML = textoOrig;
                 btnElement.disabled = false;
-                alert("Función disponible únicamente en el entorno web principal.");
+            }
+        
+            if (res && res.encontrado && res.pdfBase64) {
+                const link = document.createElement('a');
+                link.href = 'data:application/pdf;base64,' + res.pdfBase64;
+                link.download = `Validacion_${codigo}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert("Error al obtener el PDF: " + (res ? res.mensaje : "Intente nuevamente."));
             }
         }
-
         function mostrarResultadoCodigo(res) {
             finalizarCarga();
             const div = document.getElementById("resultado");
