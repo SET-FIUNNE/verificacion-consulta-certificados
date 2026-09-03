@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificación y Consultas de Certificados</title>
+    <link rel="icon" href="data:,">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -337,7 +338,6 @@
     </footer>
 
     <script>
-        // ⚠️ PEGA AQUÍ LA URL COMPLETA DE TU DESPLIEGUE WEB APP
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbytvPPxzIHUhqPtpXTVDdCiWR8H7eZ2MUIJeI31NNsiIrysWpjxpp8sSrtR9TCvulwx/exec";
 
         document.getElementById("codigoInput").addEventListener("keypress", e => { if (e.key === "Enter") consultarCodigo(); });
@@ -347,28 +347,40 @@
             return new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
         }
 
-        // Petición HTTP FETCH directa para prevenir error 404 en móviles por múltiples cuentas
+        // Método universal JSONP para evadir bloqueos CORS/multi-cuenta en celulares
+        function hacerPeticionJSONP(urlParams, callbackName) {
+            const viejoScript = document.getElementById("jsonp-script");
+            if (viejoScript) viejoScript.remove();
+
+            const timestamp = new Date().getTime();
+            const script = document.createElement("script");
+            script.id = "jsonp-script";
+            script.src = `${WEB_APP_URL}?${urlParams}&prefix=${callbackName}&anonymous=true&_nocache=${timestamp}`;
+            
+            script.onerror = function() {
+                finalizarCarga();
+                if (window.btnPDFActivo) {
+                    window.btnPDFActivo.innerHTML = window.textoBtnOrig;
+                    window.btnPDFActivo.disabled = false;
+                }
+                alert("No se pudo conectar con el servidor desde este dispositivo. Intente nuevamente.");
+            };
+
+            document.body.appendChild(script);
+        }
+
         function consultarCodigo() {
             const codigo = document.getElementById("codigoInput").value.trim();
             if (!codigo) { alert("Ingrese un código de registro."); return; }
             iniciarCarga();
-
-            fetch(`${WEB_APP_URL}?codigo=${encodeURIComponent(codigo)}`)
-                .then(res => res.json())
-                .then(data => mostrarResultadoCodigo(data))
-                .catch(err => mostrarError(err));
+            hacerPeticionJSONP(`codigo=${encodeURIComponent(codigo)}`, "mostrarResultadoCodigo");
         }
 
-        // Petición HTTP FETCH directa para prevenir error 404 en móviles por múltiples cuentas
         function consultarDNI() {
             const dni = document.getElementById("dniInput").value.trim();
             if (!dni) { alert("Ingrese un número de DNI."); return; }
             iniciarCarga();
-
-            fetch(`${WEB_APP_URL}?dni=${encodeURIComponent(dni)}`)
-                .then(res => res.json())
-                .then(data => mostrarResultadosDNI(data))
-                .catch(err => mostrarError(err));
+            hacerPeticionJSONP(`dni=${encodeURIComponent(dni)}`, "mostrarResultadosDNI");
         }
 
         function iniciarCarga() {
@@ -377,57 +389,29 @@
             resDiv.style.display = "none";
             resDiv.innerHTML = "";
         }
-        
-    // Función JSONP optimizada para navegadores móviles con bypass de cuentas de Google
-function hacerPeticionJSONP(urlParams, callbackName) {
-    const viejoScript = document.getElementById("jsonp-script");
-    if (viejoScript) viejoScript.remove();
 
-    // Timestamp para evitar caché en móviles
-    const cacheBuster = "&_nocache=" + new Date().getTime();
-    
-    const script = document.createElement("script");
-    script.id = "jsonp-script";
-    
-    // Se añade &anonymous=true para que Google no intente validar las cuentas de Gmail abiertas en el teléfono
-    script.src = `${WEB_APP_URL}?${urlParams}&prefix=${callbackName}&anonymous=true${cacheBuster}`;
-    
-    // Manejo de error si falla la carga en móviles
-    script.onerror = function() {
-        finalizarCarga();
-        if (window.btnPDFActivo) {
-            window.btnPDFActivo.innerHTML = window.textoBtnOrig;
-            window.btnPDFActivo.disabled = false;
-        }
-        alert("No se pudo conectar con el servidor desde este dispositivo. Verifique su conexión o intente nuevamente.");
-    };
-
-    document.body.appendChild(script);
-}
-        
         function descargarPDF(codigo, btnElement) {
             const textoOrig = btnElement.innerHTML;
             btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando...';
             btnElement.disabled = true;
-        
-            // Guardar referencia temporal del botón activo
+
             window.btnPDFActivo = btnElement;
             window.textoBtnOrig = textoOrig;
             window.codigoPDFActivo = codigo;
-        
-            // Petición JSONP para solicitar el PDF generado
+
             hacerPeticionJSONP(`pdfCode=${encodeURIComponent(codigo)}`, "procesarDescargaPDF");
         }
+
         function procesarDescargaPDF(res) {
             const btnElement = window.btnPDFActivo;
             const textoOrig = window.textoBtnOrig;
             const codigo = window.codigoPDFActivo;
-        
+
             if (btnElement) {
                 btnElement.innerHTML = textoOrig;
                 btnElement.disabled = false;
             }
-        
+
             if (res && res.encontrado && res.pdfBase64) {
                 const link = document.createElement('a');
                 link.href = 'data:application/pdf;base64,' + res.pdfBase64;
@@ -439,6 +423,7 @@ function hacerPeticionJSONP(urlParams, callbackName) {
                 alert("Error al obtener el PDF: " + (res ? res.mensaje : "Intente nuevamente."));
             }
         }
+
         function mostrarResultadoCodigo(res) {
             finalizarCarga();
             const div = document.getElementById("resultado");
@@ -501,9 +486,7 @@ function hacerPeticionJSONP(urlParams, callbackName) {
                 }
             }
 
-            if (mesEncontrado) {
-                return new Date(anio, mes, dia).getTime();
-            }
+            if (mesEncontrado) return new Date(anio, mes, dia).getTime();
 
             const parsed = Date.parse(str);
             return isNaN(parsed) ? 0 : parsed;
@@ -605,12 +588,7 @@ function hacerPeticionJSONP(urlParams, callbackName) {
                     `;
                 });
 
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-
+                html += `</tbody></table></div>`;
                 htmlMobile += `</div>`;
 
                 div.innerHTML = html + htmlMobile;
@@ -622,7 +600,7 @@ function hacerPeticionJSONP(urlParams, callbackName) {
         function crearTarjetaHTML(res) {
             const fechaHoy = obtenerFechaActual();
             const textoResolucion = res.urlResolucion 
-                ? `<a href="${res.urlResolucion}" target="_blank" class="btn-resolucion">${res.resolucion} <i class="fa-solid fa-arrow-up-right-from-square fa-xs"></i></a>`
+                ? `<a href="${res.urlResolucion}" target="_blank" style="color: var(--primary-color); font-weight: 600;">${res.resolucion} <i class="fa-solid fa-arrow-up-right-from-square fa-xs"></i></a>`
                 : res.resolucion;
 
             return `
