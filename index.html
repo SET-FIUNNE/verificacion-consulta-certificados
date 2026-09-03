@@ -377,7 +377,24 @@
             resDiv.style.display = "none";
             resDiv.innerHTML = "";
         }
-
+        
+        function hacerPeticionJSONP(urlParams, callbackName) {
+            const viejoScript = document.getElementById("jsonp-script");
+            if (viejoScript) viejoScript.remove();
+        
+            const script = document.createElement("script");
+            script.id = "jsonp-script";
+            script.src = `${WEB_APP_URL}?${urlParams}&prefix=${callbackName}`;
+            script.onerror = function() {
+                if (window.btnPDFActivo) {
+                    window.btnPDFActivo.innerHTML = window.textoBtnOrig;
+                    window.btnPDFActivo.disabled = false;
+                }
+                alert("Error de conexión con el servidor de certificados.");
+            };
+            document.body.appendChild(script);
+        }
+        
         function descargarPDF(codigo, btnElement) {
             const textoOrig = btnElement.innerHTML;
             btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando...';
